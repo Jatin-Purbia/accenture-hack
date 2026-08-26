@@ -1,0 +1,192 @@
+# KPI Semantic Contract
+#
+# This is the single source of truth for what each KPI means, how it is
+# calculated, where its data comes from, who owns it, and who is allowed to
+# see it. The Signal, Reasoning, and Story layers all resolve KPI metadata
+# through this file (loaded by app/services/data/kpi_registry.py) rather than
+# hardcoding formulas or thresholds in code — changing a KPI's definition or
+# materiality threshold means editing this file, not the codebase.
+#
+# Field meanings:
+#   id                 - stable machine identifier, used in API payloads
+#   name               - human display name
+#   definition         - plain-language definition of what the number means
+#   formula            - the literal calculation, in terms of source fields
+#   grain              - the row-level unit each observation represents
+#   dimensions         - valid slice-by dimensions for this KPI
+#   source             - which raw dataset(s) feed this KPI
+#   refresh_cadence    - how often the underlying source actually refreshes
+#                        (the two source systems here deliberately do NOT
+#                        share a cadence or a join key — see docs/architecture.md
+#                        "Fragmented sources" for why that's the point, not a bug)
+#   owner              - the business role accountable for this metric
+#   materiality        - thresholds used by the Signal layer's anomaly
+#                        detector to decide whether a movement is worth
+#                        surfacing at all (a statistically significant blip
+#                        under the business threshold is not "material")
+#   drivers            - the deterministic driver-tree components the
+#                        Reasoning layer decomposes this KPI into
+#   access_restrictions - which columns/rows are persona-scoped, and how
+#   lineage            - the processing steps from raw file to this KPI value,
+#                        surfaced in the Evidence Viewer for traceability
+
+kpis:
+  - id: weekly_sales_by_region
+    name: Weekly Sales by Region
+    definition: >
+      Total order-line sales revenue recognized per calendar week, per region.
+    formula: "SUM(sales) GROUP BY week(order_date), region"
+    grain: order line item (transactional)
+    dimensions: [region, segment, category, sub_category]
+    source: superstore_sales
+    refresh_cadence: daily batch load (simulated weekly aggregation for the demo)
+    owner: Regional Sales Leader
+    materiality:
+      min_absolute_change_usd: 2000
+      min_relative_change_pct: 5.0
+      note: >
+        A movement must clear BOTH the absolute-dollar and relative-percent
+        floor to be flagged material — this avoids flagging noisy percent
+        swings on a low base and avoids flagging large-base metrics whose
+        percent move is trivial.
+    drivers:
+      - quantity_effect      # Quantity(t) - Quantity(t-1), holding avg price at period-1
+      - avg_price_effect     # Avg Price(t) - Avg Price(t-1), holding quantity at period-1
+      - discount_effect      # change in discount rate applied
+      - mix_effect           # category/sub-category mix shift
+    access_restrictions:
+      row_level: "region_scope on persona (regional leaders see only their region)"
+      column_level: "customer_id, customer_name hidden from regional_leader persona"
+    lineage:
+      - "data/raw/<superstore_csv> (raw Kaggle export)"
+      - "schema_normalization.normalize_superstore() — fuzzy column matching"
+      - "ingestion.build_weekly_region_sales() — weekly aggregation"
+      - "data/processed/weekly_sales_by_region.parquet"
+
+  - id: weekly_profit_margin_by_category
+    name: Weekly Profit Margin by Category
+    definition: >
+      Profit as a percentage of sales, per calendar week, per product
+      category. A derived/aggregated-grain KPI (computed from the same
+      transactional source as Weekly Sales, but at a coarser weekly x
+      category grain).
+    formula: "SUM(profit) / SUM(sales) * 100 GROUP BY week(order_date), category"
+    grain: weekly x category aggregate (derived)
+    dimensions: [category, region]
+    source: superstore_sales
+    refresh_cadence: daily batch load (simulated weekly aggregation for the demo)
+    owner: Category Manager
+    materiality:
+      min_absolute_change_pp: 1.5
+      min_relative_change_pct: 8.0
+    drivers:
+      - discount_effect
+      - cost_mix_effect      # sub-category mix shift within the category
+      - volume_effect
+    access_restrictions:
+      row_level: "region_scope on persona when sliced by region"
+      column_level: none
+    lineage:
+      - "data/raw/<superstore_csv>"
+      - "schema_normalization.normalize_superstore()"
+      - "ingestion.build_weekly_category_margin()"
+      - "data/processed/weekly_profit_margin_by_category.parquet"
+
+  - id: weekly_ticket_volume_by_category
+    name: Weekly Support Ticket Volume by Category
+    definition: >
+      Count of customer support tickets opened per calendar week, mapped to
+      the product category they concern. An independent-cadence signal
+      source — the support system refreshes and is keyed differently than
+      the sales system (no shared order_id / customer_id join is assumed).
+    formula: "COUNT(ticket_id) GROUP BY week(created_date), product->category"
+    grain: ticket (transactional, second source)
+    dimensions: [category]
+    source: support_tickets
+    refresh_cadence: near-real-time ticket system export, sampled weekly for this demo
+    owner: Customer Support Operations Lead
+    materiality:
+      min_absolute_change_count: 15
+      min_relative_change_pct: 20.0
+    drivers:
+      - volume_shift  # ticket volume is an input signal to sales reasoning, not itself decomposed
+    access_restrictions:
+      row_level: none (ticket data has no region field in the source; category-level only)
+      column_level: "raw_ticket_text hidden from regional_leader persona"
+    lineage:
+      - "data/raw/<support_tickets_csv> (raw Kaggle export)"
+      - "schema_normalization.normalize_support_tickets()"
+      - "nlp_events.extract_ticket_events() — classical NLP sentiment/topic tagging"
+      - "data/processed/weekly_ticket_events_by_category.parquet"
+
+  - id: weekly_ticket_sentiment_by_category
+    name: Weekly Average Ticket Sentiment by Category
+    definition: >
+      Mean sentiment polarity score (-1 negative to +1 positive) across
+      support tickets opened per week, per category, derived via a classical
+      lexicon-based sentiment scorer (NOT the narrative LLM) applied to
+      ticket subject + description text.
+    formula: "AVG(sentiment_score) GROUP BY week(created_date), product->category"
+    grain: weekly x category aggregate (derived from ticket text)
+    dimensions: [category]
+    source: support_tickets
+    refresh_cadence: near-real-time ticket system export, sampled weekly for this demo
+    owner: Customer Support Operations Lead
+    materiality:
+      min_absolute_change: 0.15
+      min_relative_change_pct: 25.0
+    drivers:
+      - negative_sentiment_spike
+    access_restrictions:
+      row_level: none
+      column_level: "raw_ticket_text hidden from regional_leader persona"
+    lineage:
+      - "data/raw/<support_tickets_csv>"
+      - "schema_normalization.normalize_support_tickets()"
+      - "nlp_events.extract_ticket_events() — lexicon sentiment scoring"
+      - "data/processed/weekly_ticket_events_by_category.parquet"
+
+  - id: weekly_sales_by_subcategory_emerging
+    name: Weekly Sales — Emerging Sub-Category
+    definition: >
+      Same formula as Weekly Sales by Region, sliced to a single recently
+      launched sub-category to deliberately create a sparse-history
+      scenario (few weeks of observations, high estimation uncertainty).
+      This scenario is constructed from a genuinely low-volume slice of the
+      dataset (see docs/architecture.md "Sparse-history scenario"), not from
+      fabricated records.
+    formula: "SUM(sales) GROUP BY week(order_date) WHERE sub_category = '<emerging>'"
+    grain: order line item (transactional), single sub-category slice
+    dimensions: [region]
+    source: superstore_sales
+    refresh_cadence: daily batch load (simulated weekly aggregation for the demo)
+    owner: Category Manager
+    materiality:
+      min_absolute_change_usd: 500
+      min_relative_change_pct: 15.0
+      note: "Lower absolute floor reflects the smaller base of an emerging line."
+    drivers:
+      - quantity_effect
+      - avg_price_effect
+    access_restrictions:
+      row_level: "region_scope on persona"
+      column_level: none
+    lineage:
+      - "data/raw/<superstore_csv>"
+      - "schema_normalization.normalize_superstore()"
+      - "ingestion.build_weekly_region_sales() filtered to emerging sub-category"
+      - "data/processed/weekly_sales_by_region.parquet"
+
+# Personas referenced by access_restrictions above are defined in
+# backend/app/core/access_control.py (the code, not this contract, is the
+# source of truth for the *mechanism*; this file documents the *policy*).
+personas:
+  - id: leader_west
+    role: regional_leader
+    region_scope: [West]
+  - id: leader_east
+    role: regional_leader
+    region_scope: [East]
+  - id: analyst_hq
+    role: analyst
+    region_scope: []  # unrestricted
