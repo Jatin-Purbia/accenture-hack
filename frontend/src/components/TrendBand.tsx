@@ -8,24 +8,42 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { movementStatus, STATUS_COLOR } from "../lib/status";
 import type { EvidencePacket } from "../types";
 
 interface Props {
   evidence: EvidencePacket;
+  /** Analyst mode keeps "forecast band" style labels; leader mode reads in
+   * plain language ("normal range"). Default: plain language. */
+  technical?: boolean;
 }
 
-/**
- * Recent weekly history for the evaluated slice, each point shown against
- * the forecast band fit from ITS OWN prior history (not a single static
- * band) — the same method the Signal layer's anomaly detector uses. The
- * evaluated period (the one the narrative explains) is marked with a
- * reference dot.
- */
-export function KpiTrendChart({ evidence }: Props) {
+function directionCaption(evidence: EvidencePacket, technical: boolean): string {
+  const m = evidence.movement;
+  const direction = m.relative_change_pct < 0 ? "dropped" : "rose";
+  const pct = Math.abs(m.relative_change_pct).toFixed(0);
+  if (!m.is_material) {
+    return `${m.dimension_label} is within its normal range this week.`;
+  }
+  const band = technical ? "outside the forecast band" : "outside the normal range";
+  return `${m.dimension_label} ${direction} ${pct}% ${band}.`;
+}
+
+/** Zone 1, "What changed": actual vs. the forecast band fit from each
+ * point's own prior history, with the evaluated (material) week marked. A
+ * plain-language caption sits ABOVE the chart — the reader gets the
+ * takeaway before they even look at the shape. */
+export function TrendBand({ evidence, technical = false }: Props) {
   const { trend, movement } = evidence;
+  const status = movementStatus({
+    isMaterial: movement.is_material,
+    relativeChangePct: movement.relative_change_pct,
+    abstained: evidence.abstained,
+  });
+  const markerColor = STATUS_COLOR[status];
 
   if (trend.length === 0) {
-    return <div className="muted">Not enough history to render a trend band for this slice.</div>;
+    return <div className="muted">Not enough history yet to chart a trend for this item.</div>;
   }
 
   const data = trend.map((t) => ({
@@ -36,29 +54,25 @@ export function KpiTrendChart({ evidence }: Props) {
     isEvaluated: t.week_start === movement.period_start,
   }));
 
-  const formatValue = (v: number) =>
-    Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(1);
+  const formatValue = (v: number) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(1));
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 20, marginBottom: 12, fontSize: 13 }}>
-        <Legend swatch="var(--series-1)" label="Actual" />
-        <Legend swatch="var(--series-2)" label="Expected (forecast baseline)" dashed />
-        <Legend swatch="var(--band-fill)" label="Forecast band" />
+      <p style={{ fontSize: 16, fontWeight: 600, margin: "0 0 14px" }}>{directionCaption(evidence, technical)}</p>
+      <div style={{ display: "flex", gap: 20, marginBottom: 10, fontSize: 12.5, flexWrap: "wrap" }}>
+        <Legend swatch="var(--series-1)" label="What happened" />
+        <Legend swatch="var(--series-2)" label={technical ? "Forecast baseline" : "What we expected"} dashed />
+        <Legend swatch="var(--band-fill)" label={technical ? "Forecast band" : "Normal range"} />
       </div>
-      <ResponsiveContainer width="100%" height={240}>
+      <ResponsiveContainer width="100%" height={220}>
         <ComposedChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="var(--gridline)" vertical={false} />
-          <XAxis
-            dataKey="week"
-            stroke="var(--text-muted)"
-            tick={{ fill: "var(--text-muted)", fontSize: 11 }}
-          />
+          <XAxis dataKey="week" stroke="var(--text-muted)" tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
           <YAxis
             stroke="var(--text-muted)"
             tick={{ fill: "var(--text-muted)", fontSize: 12 }}
             tickFormatter={formatValue}
-            width={56}
+            width={52}
           />
           <Tooltip
             contentStyle={{
@@ -67,12 +81,9 @@ export function KpiTrendChart({ evidence }: Props) {
               borderRadius: 8,
               fontSize: 13,
             }}
-            formatter={(value: number | string, name: string) => [
-              typeof value === "number" ? formatValue(value) : value,
-              name,
-            ]}
+            formatter={(value: number | string, name: string) => [typeof value === "number" ? formatValue(value) : value, name]}
           />
-          <Area dataKey="band" fill="var(--band-fill)" stroke="none" isAnimationActive={false} name="Forecast band" />
+          <Area dataKey="band" fill="var(--band-fill)" stroke="none" isAnimationActive={false} name="Normal range" />
           <Line
             dataKey="expected"
             stroke="var(--series-2)"
@@ -85,7 +96,7 @@ export function KpiTrendChart({ evidence }: Props) {
           <Line
             dataKey="actual"
             stroke="var(--series-1)"
-            strokeWidth={2}
+            strokeWidth={2.5}
             dot={(props) => {
               const isEval = data[props.index]?.isEvaluated;
               return (
@@ -93,8 +104,8 @@ export function KpiTrendChart({ evidence }: Props) {
                   key={`dot-${props.index}`}
                   cx={props.cx}
                   cy={props.cy}
-                  r={isEval ? 6 : 3}
-                  fill={isEval ? "var(--status-critical)" : "var(--series-1)"}
+                  r={isEval ? 6.5 : 3}
+                  fill={isEval ? markerColor : "var(--series-1)"}
                   stroke={isEval ? "var(--surface-1)" : "none"}
                   strokeWidth={isEval ? 2 : 0}
                 />
@@ -105,10 +116,6 @@ export function KpiTrendChart({ evidence }: Props) {
           />
         </ComposedChart>
       </ResponsiveContainer>
-      <div className="secondary" style={{ marginTop: 8, fontSize: 13 }}>
-        Evaluated period: <strong>{movement.period_start}</strong> to {movement.period_end} —{" "}
-        {movement.dimension_label} (highlighted point)
-      </div>
     </div>
   );
 }

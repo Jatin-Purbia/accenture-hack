@@ -28,6 +28,7 @@ from app.services.story.action_recommender import recommend_actions
 from app.services.story.cache import CacheKey, NarrativeCache, compute_evidence_hash
 from app.services.story.grounding import check_grounding
 from app.services.story.llm_client import LLMClient, Tier
+from app.services.story.plain_language import build_plain_fallback_narrative, contains_jargon
 from app.services.story.prompt_templates import (
     PROMPT_VERSION,
     build_user_prompt,
@@ -96,16 +97,40 @@ def generate_persona_narrative(
     user_prompt = build_user_prompt(evidence, action_lines, persona_role)
 
     response = llm_client.complete(system_prompt, user_prompt, tier)
+    narrative_text = response.text
+
+    # Hard requirement, not a style preference: the regional-leader persona
+    # must never see statistics jargon or a raw internal identifier
+    # (driver/signal names). Small local models don't reliably follow that
+    # instruction from the prompt alone, so this is a deterministic
+    # guardrail, not an optional cleanup — see plain_language.py.
+    used_fallback = False
+    if persona_role != "analyst" and contains_jargon(narrative_text):
+        logger.warning(
+            "leader_narrative_jargon_detected_using_deterministic_fallback",
+            kpi_id=evidence.movement.kpi_id,
+            persona_id=persona_id,
+            model=response.model,
+        )
+        narrative_text = build_plain_fallback_narrative(evidence)
+        used_fallback = True
 
     # Grounding must check against EVERYTHING the LLM was actually given —
     # the evidence summary AND the rule-based action-playbook text (e.g.
     # "restores 30-50% of lost volume" is a legitimate number from the
     # static ACTION_PLAYBOOK table, not a hallucination, and must not be
     # flagged just because it lives in a different part of the prompt).
-    grounding = check_grounding(response.text, evidence_summary + "\n" + render_action_context(action_lines))
+    # The deterministic fallback is grounded by construction (every number
+    # in it is read directly from the evidence packet), so it isn't
+    # re-checked — there's nothing an LLM invented left to verify.
+    grounding = (
+        check_grounding(narrative_text, evidence_summary + "\n" + render_action_context(action_lines))
+        if not used_fallback
+        else GroundingCheckResult(passed=True, checked_numbers=[], ungrounded_numbers=[])
+    )
 
     for action in action_recs:
-        action.llm_phrased_summary = _extract_relevant_sentence(response.text, action.driver)
+        action.llm_phrased_summary = None if used_fallback else _extract_relevant_sentence(response.text, action.driver)
 
     telemetry = LlmTelemetry(
         provider=response.provider,
@@ -122,8 +147,8 @@ def generate_persona_narrative(
     narrative = PersonaNarrative(
         persona_id=persona_id,
         persona_role=persona_role,
-        headline=_first_sentence(response.text),
-        narrative=response.text,
+        headline=_first_sentence(narrative_text),
+        narrative=narrative_text,
         recommended_actions=action_recs,
         grounding=grounding,
         llm_telemetry=telemetry,
@@ -136,6 +161,7 @@ def generate_persona_narrative(
         tier=tier,
         prompt_version=PROMPT_VERSION,
         grounding_passed=grounding.passed,
+        used_deterministic_fallback=used_fallback,
     )
     return narrative
 

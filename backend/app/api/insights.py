@@ -112,6 +112,27 @@ def get_scenario_insight(
     return _respond(evidence, persona, llm_client, cache, settings, telemetry_log)
 
 
+@router.get("/{scenario_id}/evidence", response_model=EvidencePacket)
+def get_scenario_evidence(
+    scenario_id: str,
+    persona: Persona = Depends(persona_dependency),
+    store: DataStore = Depends(data_store_dependency),
+    contract: KpiContract = Depends(kpi_contract_dependency),
+) -> EvidencePacket:
+    """Evidence only — no narrative, no LLM call. This is what powers the
+    KPI Command Center grid (needs a trend/confidence snapshot for every
+    visible scenario instantly, not after N x 30-90s LLM calls) and the
+    detail view's first paint (the trend chart renders immediately; the
+    narrative/action zones load in behind it via GET /{scenario_id})."""
+    try:
+        scenario = get_scenario(scenario_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    _enforce_region_access(persona, scenario.region)
+    return _build_evidence(store, contract, scenario.kpi_id, scenario.region, scenario.category, scenario.sub_category)
+
+
 @router.get("/custom/query", response_model=Insight)
 def get_custom_insight(
     kpi_id: str = Query(...),

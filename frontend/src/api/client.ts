@@ -1,4 +1,5 @@
 import type {
+  EvidencePacket,
   FeedbackEntry,
   FeedbackVerdict,
   Insight,
@@ -6,7 +7,6 @@ import type {
   PersonaOut,
   SampleRecord,
   ScenarioDef,
-  TelemetrySummary,
 } from "../types";
 
 const BASE = "/api";
@@ -39,11 +39,12 @@ export const api = {
   getPersonas: () => apiFetch<PersonaOut[]>("/personas", "analyst_hq"),
   getScenarios: (personaId: string) => apiFetch<ScenarioDef[]>("/scenarios", personaId),
   getKpiContract: (personaId: string) => apiFetch<KpiContract>("/kpis", personaId),
-  getInsight: (scenarioId: string, personaId: string) =>
-    apiFetch<Insight>(`/insights/${scenarioId}`, personaId),
+  getInsight: (scenarioId: string, personaId: string, signal?: AbortSignal) =>
+    apiFetch<Insight>(`/insights/${scenarioId}`, personaId, { signal }),
+  getScenarioEvidence: (scenarioId: string, personaId: string, signal?: AbortSignal) =>
+    apiFetch<EvidencePacket>(`/insights/${scenarioId}/evidence`, personaId, { signal }),
   getSampleRecords: (scenarioId: string, personaId: string) =>
     apiFetch<SampleRecord[]>(`/insights/${scenarioId}/sample-records`, personaId),
-  getTelemetry: (personaId: string) => apiFetch<TelemetrySummary>("/telemetry", personaId),
   submitFeedback: (
     personaId: string,
     payload: {

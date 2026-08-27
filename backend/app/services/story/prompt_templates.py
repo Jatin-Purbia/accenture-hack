@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from app.models.evidence import EvidencePacket
 
-PROMPT_VERSION = "story-v2"
+PROMPT_VERSION = "story-v3"
 
 _FORMAT_RULES = """
 - Plain prose paragraphs ONLY. Do NOT use markdown formatting of any kind —
@@ -31,10 +31,18 @@ Rules:
 
 _ANALYST_SYSTEM = """You are writing a KPI analysis for a data/business analyst audience.
 Rules:
-- Give a full breakdown: the movement, each contributing driver with its % contribution, any correlation findings WITH their correlated-vs-causally-supported label and rationale, and the overall confidence score.
-- Be explicit about caveats: sparse history, contradictory signals, or why a correlation is not being called causal.
+- EXACTLY 3 short paragraphs, 2-3 sentences each. Do not exceed this — the
+  driver percentages, correlation stats, and confidence score are already
+  shown to the reader in tables below your text, so do not re-list every
+  driver and every correlation signal one by one; synthesize instead.
+- Paragraph 1: what moved, by how much, and the single primary driver.
+- Paragraph 2: the most important corroborating or contradicting evidence
+  (at most the ONE most relevant correlation finding, with its correlated-
+  vs-causally-supported label), and any key caveat (sparse history,
+  contradictory signals).
+- Paragraph 3: the confidence level in plain terms and what it implies for
+  how much to trust this explanation.
 - Every number you state must come from the evidence given to you below — never invent, round-trip-guess, or extrapolate a number that isn't already present in the evidence.
-- Write 2-4 short paragraphs. It is fine to be technical.
 """ + _FORMAT_RULES
 
 _ABSTENTION_ADDENDUM = """

@@ -1,14 +1,20 @@
 :root {
   color-scheme: light;
-  --surface-1: #fcfcfb;
-  --page: #f9f9f7;
+  --surface-1: #ffffff;
+  --page: #f4f5f7;
   --surface-raised: #ffffff;
-  --text-primary: #0b0b0b;
+  --surface-sunken: #f7f7f5;
+  --text-primary: #14140f;
   --text-secondary: #52514e;
-  --text-muted: #898781;
-  --gridline: #e1e0d9;
-  --border: rgba(11, 11, 11, 0.1);
+  --text-muted: #86847d;
+  --gridline: #e7e6e0;
+  --border: rgba(11, 11, 11, 0.09);
+  --border-strong: rgba(11, 11, 11, 0.16);
   --baseline: #c3c2b7;
+
+  --brand: #2a78d6;
+  --brand-ink: #ffffff;
+  --brand-wash: rgba(42, 120, 214, 0.08);
 
   --series-1: #2a78d6; /* blue — actual */
   --series-2: #eb6834; /* orange — expected/forecast */
@@ -17,26 +23,43 @@
   --series-7: #4a3aa7; /* violet */
 
   --status-good: #0ca30c;
-  --status-warning: #fab219;
+  --status-good-wash: rgba(12, 163, 12, 0.1);
+  --status-warning: #b8790a;
+  --status-warning-wash: rgba(250, 178, 25, 0.16);
   --status-serious: #ec835a;
   --status-critical: #d03b3b;
-  --delta-good: #006300;
+  --status-critical-wash: rgba(208, 59, 59, 0.09);
+  --status-unknown-wash: rgba(134, 132, 125, 0.12);
+  --delta-good: #0a7d0a;
 
-  --band-fill: rgba(42, 120, 214, 0.12);
+  --band-fill: rgba(42, 120, 214, 0.1);
+
+  --shadow-sm: 0 1px 2px rgba(20, 20, 15, 0.04), 0 1px 1px rgba(20, 20, 15, 0.03);
+  --shadow-md: 0 4px 16px rgba(20, 20, 15, 0.06), 0 1px 3px rgba(20, 20, 15, 0.05);
+  --shadow-lg: 0 12px 32px rgba(20, 20, 15, 0.10), 0 2px 6px rgba(20, 20, 15, 0.06);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page: #0d0d0d;
+    --surface-1: #1c1c1a;
+    --page: #121212;
     --surface-raised: #232322;
-    --text-primary: #ffffff;
+    --surface-sunken: #191917;
+    --text-primary: #f5f5f2;
     --text-secondary: #c3c2b7;
-    --text-muted: #898781;
-    --gridline: #2c2c2a;
-    --border: rgba(255, 255, 255, 0.1);
+    --text-muted: #8f8d86;
+    --gridline: #313130;
+    --border: rgba(255, 255, 255, 0.09);
+    --border-strong: rgba(255, 255, 255, 0.18);
     --baseline: #383835;
+
+    --brand: #3987e5;
+    --brand-wash: rgba(57, 135, 229, 0.14);
 
     --series-1: #3987e5;
     --series-2: #d95926;
@@ -44,23 +67,37 @@
     --series-4: #c98500;
     --series-7: #9085e9;
 
-    --status-good: #0ca30c;
-    --delta-good: #0ca30c;
-    --band-fill: rgba(57, 135, 229, 0.16);
+    --status-good: #2fbf2f;
+    --status-good-wash: rgba(47, 191, 47, 0.14);
+    --status-warning: #fab219;
+    --status-warning-wash: rgba(250, 178, 25, 0.16);
+    --status-critical-wash: rgba(230, 103, 103, 0.14);
+    --status-unknown-wash: rgba(143, 141, 134, 0.16);
+    --delta-good: #2fbf2f;
+    --band-fill: rgba(57, 135, 229, 0.18);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface-1: #1a1a19;
-  --page: #0d0d0d;
+  --surface-1: #1c1c1a;
+  --page: #121212;
   --surface-raised: #232322;
-  --text-primary: #ffffff;
+  --surface-sunken: #191917;
+  --text-primary: #f5f5f2;
   --text-secondary: #c3c2b7;
-  --text-muted: #898781;
-  --gridline: #2c2c2a;
-  --border: rgba(255, 255, 255, 0.1);
+  --text-muted: #8f8d86;
+  --gridline: #313130;
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
   --baseline: #383835;
+
+  --brand: #3987e5;
+  --brand-wash: rgba(57, 135, 229, 0.14);
 
   --series-1: #3987e5;
   --series-2: #d95926;
@@ -68,19 +105,32 @@
   --series-4: #c98500;
   --series-7: #9085e9;
 
-  --band-fill: rgba(57, 135, 229, 0.16);
+  --status-good: #2fbf2f;
+  --status-good-wash: rgba(47, 191, 47, 0.14);
+  --status-warning: #fab219;
+  --status-warning-wash: rgba(250, 178, 25, 0.16);
+  --status-critical-wash: rgba(230, 103, 103, 0.14);
+  --status-unknown-wash: rgba(143, 141, 134, 0.16);
+  --delta-good: #2fbf2f;
+  --band-fill: rgba(57, 135, 229, 0.18);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
   background: var(--page);
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 14px;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
 }
 
 button {
@@ -88,16 +138,48 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+h1, h2, h3, h4 {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
 .panel {
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 22px 26px;
 }
 
 .panel h2,
 .panel h3 {
   margin-top: 0;
+}
+
+/* Lighter section style for content nested inside another panel (e.g. the
+ * analyst view's collapsible "Technical & audit details" group) — a full
+ * bordered/shadowed .panel-in-a-panel reads as visual clutter. */
+.subsection {
+  padding-top: 18px;
+}
+.subsection:first-child {
+  padding-top: 0;
+}
+.subsection + .subsection {
+  border-top: 1px solid var(--gridline);
+}
+
+.eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
 }
 
 .muted {
@@ -106,6 +188,40 @@ button {
 
 .secondary {
   color: var(--text-secondary);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--brand);
+  background: var(--brand-wash);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-ink);
+}
+
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  background: var(--brand);
 }
 
 table {
@@ -117,20 +233,108 @@ table {
 th,
 td {
   text-align: left;
-  padding: 6px 10px;
+  padding: 7px 10px;
   border-bottom: 1px solid var(--gridline);
 }
 
 th {
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11.5px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 code,
 .mono {
   font-family: ui-monospace, "SF Mono", Consolas, monospace;
   font-variant-numeric: tabular-nums;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid var(--border-strong);
+  border-top-color: var(--brand);
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes status-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.25s ease both;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+}
+
+/* Skeleton loading — shapes match the final card, never a blank spinner
+ * screen, so the "pictorial, not textual" feel holds even while waiting. */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-sunken) 25%, var(--gridline) 37%, var(--surface-sunken) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* Deliberately distinct visual treatment for "the system is being honest
+ * about uncertainty" — dashed border, muted tone, never styled like an
+ * error. Confident and intentional, not broken. */
+.abstain-card {
+  background: var(--surface-sunken);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+}
+
+.icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  flex: none;
 }

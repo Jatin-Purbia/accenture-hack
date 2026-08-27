@@ -138,8 +138,11 @@ the UI via the "View KPI contract" button.
   /core        — config, logging, access control
 /backend/tests  — real assertions on the deterministic layers
 /frontend/src
-  /components  — KpiTrendChart, DriverBreakdown, NarrativePanel, EvidenceViewer,
-                 ProcessingBreakdown, TelemetryPanel, PersonaSwitcher, etc.
+  /components  — HomeView (KPI Command Center grid) + DetailView (the
+                 three-zone What changed / Why it changed / What to do
+                 story), and their pieces: KpiCard, TrendBand,
+                 DriverWaterfall, DriverChip, ActionCard, AbstainPanel,
+                 EvidenceDrawer, TelemetryBadge, PersonaToggle, etc.
   /api, /types  — typed API client
 /data/raw, /data/processed
 /docs           — kpi_contract.yaml, architecture.md, business_proposal.md
