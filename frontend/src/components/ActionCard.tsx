@@ -23,14 +23,23 @@ function formatValue(v: number) {
 }
 
 /** A real before/after visual grounded in the evidence itself — "current"
- * vs. "expected" (the gap this action targets closing) — rather than an
- * invented recovery number the backend never computed. */
-function ImpactBars({ current, target }: { current: number; target: number }) {
+ * vs. "expected" — rather than an invented recovery number the backend
+ * never computed. Framing flips with direction: for a decline, "Now" is the
+ * shortfall (red) and "Expected" is the gap to close (green, a goal to
+ * reach). For a rise, "Now" is the win (green) and "Expected" is just the
+ * beaten baseline (neutral) — never paint a bigger, better actual red, or
+ * imply the goal is to shrink back down to what was expected. */
+function ImpactBars({ current, target, isIncrease }: { current: number; target: number; isIncrease: boolean }) {
   const max = Math.max(current, target, 1);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", maxWidth: 220 }}>
-      <BarRow label="Now" value={current} max={max} color="var(--status-critical)" />
-      <BarRow label="Goal" value={target} max={max} color="var(--delta-good)" />
+      <BarRow label="Now" value={current} max={max} color={isIncrease ? "var(--delta-good)" : "var(--status-critical)"} />
+      <BarRow
+        label={isIncrease ? "Baseline" : "Expected"}
+        value={target}
+        max={max}
+        color={isIncrease ? "var(--gridline)" : "var(--delta-good)"}
+      />
     </div>
   );
 }
@@ -98,7 +107,11 @@ export function ActionCard({ evidence, action, index, personaId }: Props) {
         </div>
       </div>
 
-      <ImpactBars current={evidence.movement.actual_value} target={evidence.movement.expected_value} />
+      <ImpactBars
+        current={evidence.movement.actual_value}
+        target={evidence.movement.expected_value}
+        isIncrease={evidence.movement.relative_change_pct > 0}
+      />
 
       <div style={{ flex: "none", display: "flex", flexDirection: "column", gap: 8, minWidth: 140 }}>
         {verdict ? (
