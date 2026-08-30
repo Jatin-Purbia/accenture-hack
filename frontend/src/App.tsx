@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BookOpen } from "lucide-react";
 import { api } from "./api/client";
 import { DetailView } from "./components/DetailView";
 import { HomeView } from "./components/HomeView";
@@ -53,41 +54,29 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh" }}>
-      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--surface-1)", borderBottom: "1px solid var(--gridline)" }}>
-        <div
-          style={{
-            maxWidth: 1160,
-            margin: "0 auto",
-            padding: "16px 24px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 20,
-          }}
-        >
-          <button onClick={goHome} style={{ display: "flex", gap: 12, alignItems: "center", background: "none", border: "none", padding: 0 }}>
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-header-inner">
+          <button onClick={goHome} className="brand-button" aria-label="Go to performance briefing">
             <BrandMark />
-            <div style={{ textAlign: "left" }}>
-              <h1 style={{ margin: 0, fontSize: 18 }}>KPI Storytelling Engine</h1>
-              <p className="muted" style={{ margin: "2px 0 0", fontSize: 12 }}>
-                What changed, why, and what to do next.
-              </p>
+            <div className="brand-copy">
+              <h1>KPI Storytelling</h1>
+              <p>Decision intelligence</p>
             </div>
           </button>
-          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+          <div className="header-actions">
+            <div className="header-tools">
               <ThemeToggle theme={theme} onChange={setTheme} />
-              <button className="btn" onClick={toggleContract}>
-                KPI definitions
+              <button className="btn definition-button" onClick={toggleContract}>
+                <BookOpen size={15} /> <span>KPI definitions</span>
               </button>
             </div>
             <PersonaToggle personas={personas} selectedId={personaId} onChange={changePersona} />
           </div>
         </div>
-      </div>
+      </header>
 
-      <div style={{ maxWidth: 1160, margin: "0 auto", padding: "28px 24px 100px" }}>
+      <main className={selectedScenario ? "app-main detail-main" : "app-main home-main"}>
         {selectedScenario && currentPersona ? (
           <DetailView
             key={`${selectedScenario.id}:${personaId}`}
@@ -99,7 +88,7 @@ export default function App() {
         ) : (
           <HomeView scenarios={scenarios} personaId={personaId} onSelect={setScenarioId} />
         )}
-      </div>
+      </main>
 
       {showContract && contract && <KpiContractViewer contract={contract} onClose={() => setShowContract(false)} />}
     </div>
